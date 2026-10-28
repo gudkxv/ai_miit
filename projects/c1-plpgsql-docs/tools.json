@@ -1,0 +1,598 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "parse_procedure",
+      "description": "Разобрать одну процедуру или функцию plpgsql. Вернуть факты кода и комментарии, приклеенные по номеру строки.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "sql": {
+            "type": "string",
+            "description": "Текст файла с одной процедурой или функцией plpgsql."
+          }
+        },
+        "required": [
+          "sql"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "error": {
+          "type": "string",
+          "enum": [
+            "not_one_routine",
+            "parse_error"
+          ]
+        },
+        "routine": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "procedure",
+                "function"
+              ]
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "name"
+          ]
+        },
+        "facts": {
+          "type": "object",
+          "properties": {
+            "parameters": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/fact"
+              }
+            },
+            "objects": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/fact"
+              }
+            },
+            "statuses": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/fact"
+              }
+            },
+            "calls": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/fact"
+              }
+            },
+            "checks": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/fact"
+              }
+            },
+            "orderings": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/fact"
+              }
+            },
+            "comments": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/fact"
+              }
+            }
+          },
+          "required": [
+            "parameters",
+            "objects",
+            "statuses",
+            "calls",
+            "checks",
+            "orderings",
+            "comments"
+          ]
+        }
+      },
+      "required": [
+        "ok"
+      ]
+    },
+    "$defs": {
+      "fact": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "parameter",
+              "object",
+              "status",
+              "call",
+              "check",
+              "ordering",
+              "comment"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer"
+          },
+          "near_id": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "columns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "defined_here": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "kind"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "check_schema",
+      "description": "Сверить вызовы и таблицы текущего разбора с data/schema.sql. Вернуть зависимости, которых в схеме нет.",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "error": {
+          "type": "string",
+          "enum": [
+            "no_facts"
+          ]
+        },
+        "remarks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "external_dependency"
+                ]
+              },
+              "name": {
+                "type": "string"
+              },
+              "fact_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "name",
+              "fact_id"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "ok",
+        "remarks"
+      ]
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "fill_template",
+      "description": "Разложить факты текущего разбора по разделам шаблона. Вернуть каркас отчёта с пустым text.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "template": {
+            "type": "string",
+            "enum": [
+              "описание процесса",
+              "описание интеграции"
+            ],
+            "description": "Тип шаблона отчёта."
+          }
+        },
+        "required": [
+          "template"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "error": {
+          "type": "string",
+          "enum": [
+            "unknown_template",
+            "no_facts"
+          ]
+        },
+        "template": {
+          "type": "string"
+        },
+        "sections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "facts": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/fact"
+                }
+              },
+              "text": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "facts",
+              "text"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "ok"
+      ]
+    },
+    "$defs": {
+      "fact": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "parameter",
+              "object",
+              "status",
+              "call",
+              "check",
+              "ordering",
+              "comment"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer"
+          },
+          "near_id": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "columns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "defined_here": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "kind"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "write_sections",
+      "description": "Записать фразы разделов в report.json по id.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "sections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "id раздела из fill_template."
+                },
+                "text": {
+                  "type": "string",
+                  "description": "Фраза раздела. Пустая строка, если фактов нет."
+                }
+              },
+              "required": [
+                "id",
+                "text"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "sections"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "error": {
+          "type": "string",
+          "enum": [
+            "no_report"
+          ]
+        },
+        "written": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "missing": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "ok",
+        "written",
+        "missing"
+      ]
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "review_names",
+      "description": "Сверить таблицы, функции, параметры и статусы во фразах report.json с facts.json.",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "error": {
+          "type": "string",
+          "enum": [
+            "no_report",
+            "no_facts"
+          ]
+        },
+        "sections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "review": {
+                "type": "string",
+                "enum": [
+                  "ok",
+                  "rejected",
+                  "empty"
+                ]
+              },
+              "unknown_names": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "id",
+              "review"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "remarks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "unknown_name",
+                  "empty_section",
+                  "external_dependency",
+                  "comment_contradicts_code"
+                ]
+              },
+              "section_id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "fact_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "text": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "ok"
+      ]
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "build_docx",
+      "description": "Собрать docx из разделов report.json со статусом ok и из списка замечаний. Если проверки имён ещё не было, выполнить её перед сборкой.",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "error": {
+          "type": "string",
+          "enum": [
+            "no_report"
+          ]
+        },
+        "docx_path": {
+          "type": "string"
+        },
+        "included_sections": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "remarks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "unknown_name",
+                  "empty_section",
+                  "external_dependency",
+                  "comment_contradicts_code"
+                ]
+              },
+              "section_id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "fact_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "text": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "ok"
+      ]
+    }
+  }
+]
